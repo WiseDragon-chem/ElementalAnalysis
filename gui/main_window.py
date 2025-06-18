@@ -1,23 +1,27 @@
+import sys,traceback
+sys.path.append('..')
+
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QMessageBox, QTableWidget, QGroupBox,
                              QTableWidgetItem, QAbstractItemView, QHeaderView,
                              QFormLayout, QLineEdit)
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
-# --- 模拟 Core 模块 ---
-class MockChemicalCalculator:
-    def solve_for_single_unknown(self, *args, **kwargs): return [({'OAc': 2, '?': 1}, 55.845, 'Fe')]
-    def solve_by_brute_force(self, *args, **kwargs): return [{'C': 1, 'H': 2, 'O': 1}]
+# # --- 模拟 Core 模块 ---
+# class MockChemicalCalculator:
+#     def solve_for_single_unknown(self, *args, **kwargs): return [({'OAc': 2, '?': 1}, 55.845, 'Fe')]
+#     def solve_by_brute_force(self, *args, **kwargs): return [{'C': 1, 'H': 2, 'O': 1}]
 
-from .dialogs.add_component_dialog import AddComponentDialog
-from .dialogs.add_fraction_dialog import AddFractionDialog
-from .widgets.results_viewer import ResultsViewerWidget
+from gui.dialogs.add_component_dialog import AddComponentDialog
+from gui.dialogs.add_fraction_dialog import AddFractionDialog
+from gui.widgets.results_viewer import ResultsViewerWidget
+from core.calculator import ChemicalCalculator
 
 class MainWindow(QMainWindow):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.calculator = MockChemicalCalculator() # 使用模拟计算器
+        self.calculator = ChemicalCalculator() # 使用模拟计算器
         self.setWindowTitle("智能化学式推断程序 v3.0")
         self.setGeometry(100, 100, 1000, 600)
         self._setup_ui()
@@ -179,5 +183,6 @@ class MainWindow(QMainWindow):
                 self.results_viewer.display_results(results, 'general')
 
         except Exception as e:
+            traceback.print_exc()
             QMessageBox.critical(self, "错误", str(e))
             self.results_viewer.show_error(str(e))

@@ -1,6 +1,6 @@
 from typing import Dict, List, Tuple, TypedDict, Optional, Set
 import re
-import data_modules
+from core import data_modules
 
 def parse_formula(formula_str: str) -> tuple[float, data_modules.Formula]:
     """
@@ -10,7 +10,7 @@ def parse_formula(formula_str: str) -> tuple[float, data_modules.Formula]:
     - 如果解析失败，应抛出ValueError。
     返回：一个元组(质量,data_modules.Formula)
     """
-    composition = data_modules.Formula()
+    composition:data_modules.Formula = dict() 
     mass = 0.0
     for i in formula_str.strip():
         if not( 'a'<=i<='z' or 'A'<=i<='Z' or '0'<= i <= '9'):
@@ -32,6 +32,7 @@ def find_matching_element(mass: float, tolerance: float,
     - 遍历ATOMIC_MASSES。
     - 如果找到一个元素的质量在 `mass ± tolerance` 范围内，返回该元素的符号。
     - 如果没有找到匹配项，返回None。
+    返回：一个包含元素符号的字符串
     """
     best_match = None
     min_diff = float('inf')
