@@ -18,7 +18,8 @@ class ChemicalCalculator:
                                  known_components_data: list[dict],
                                  unknown_mass_fraction: float,
                                  n_max: int,
-                                 tolerance: float) -> list[data_modules.SolutionUnknown]:
+                                 tolerance: float,
+                                 unknown_filter: str) -> list[data_modules.SolutionUnknown]:
         """
         实现“单一未知元素”模式的计算。
         这是该模式下对外的唯一接口。
@@ -33,11 +34,12 @@ class ChemicalCalculator:
         """
         self.__init__()
         self.known_components = self._prepare_components(known_components_data)   # 数据预处理
-        self.mass_ratio_factor = unknown_mass_fraction / (1.0 - unknown_mass_fraction)
+        self.mass_ratio_factor = unknown_mass_fraction / (100 - unknown_mass_fraction)
         self.solutions = []
         self.n_max = n_max
         self.tolerance = tolerance
-        # self.element_type = elememt_type
+        # print('IN SOLVE',self.know_components, self.mass_ratio_factor)
+        self.element_type = unknown_filter
 
         for n_unknown in range(1, n_max + 1):
             self._find_combinations_recursive(0, {'?': n_unknown}, 0.0)
@@ -108,13 +110,16 @@ class ChemicalCalculator:
         """
         ret : list[data_modules.Component] = []
         for item in components_data:
+            # print('IN PREPARE', item)
+            if item['symbol'] == '?':
+                continue
             mass_ , formula_ = utils.parse_formula(item['formula'])
             ret.append(data_modules.Component(symbol=item['symbol'],mass= mass_, composition=formula_))
         return ret
 
 
     def _find_combinations_recursive(self, comp_index: int, formula: 
-                                     data_modules.Formula, known_mass_sum: float):
+                                     data_modules.Formula, known_mass_sum: float,):
         """
         (私有) 'solve_for_single_unknown' 方法中使用的递归辅助函数。
         """

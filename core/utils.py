@@ -12,6 +12,9 @@ def parse_formula(formula_str: str) -> tuple[float, data_modules.Formula]:
     """
     composition:data_modules.Formula = dict() 
     mass = 0.0
+    if formula_str == '?':
+        composition['?'] = 1
+        return (0,composition)
     for i in formula_str.strip():
         if not( 'a'<=i<='z' or 'A'<=i<='Z' or '0'<= i <= '9'):
             raise ValueError(f"记号'{i}'非法")
@@ -52,7 +55,12 @@ def find_matching_element(mass: float, tolerance: float,
     
     return best_match
 
-def check_component(symbol : str, formula : str):
+def check_component(symbol : str, formula : str, existing_symbols : list[str] ):
+    """检验用户输入的化学式是否合法"""
+    if symbol == '?' or symbol == '？':
+        return ('?',"?")
+    if symbol in existing_symbols:
+        raise ValueError(f'组分{symbol}已经被添加')
     if symbol == '':
         raise ValueError('请输入元素符号')
     if symbol.strip() in data_modules.ATOMIC_MASSES.keys():
@@ -65,13 +73,23 @@ def check_component(symbol : str, formula : str):
         raise ValueError(f'符号{symbol}不在元素周期表中，需要给出化学组成')
     return (symbol,formula)
 
-def check_fraction(symbol :str, fraction_str: str):
-    if symbol == '':
-        raise ValueError('请输入元素符号')
+def check_fraction(symbol :str, fraction_str: str, defined_symbols: list[str]):
     try: 
         fraction_ = float(fraction_str)
     except ValueError:
         raise ValueError('质量分数应为(0,100)范围内的数')
     if fraction_ <= 0 or fraction_>=100:
         raise ValueError('质量分数应为(0,100)范围内的数')
+    if symbol == '?' or symbol == '？':
+        if '?' in defined_symbols:
+            return ('?', fraction_)
+        else:
+            raise ValueError('没有定义未知元素')
+    if symbol not in data_modules.ATOMIC_MASSES.keys():
+        raise ValueError(f'{symbol}不是元素, 请输入正确的元素符号')
+    if symbol not in defined_symbols:
+        raise ValueError(f'符号{symbol}尚未添加，需要在添加化学组分窗口添加')
+    if symbol == '':
+        raise ValueError('请输入元素符号')
+
     return symbol, fraction_

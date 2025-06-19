@@ -3,16 +3,18 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 
 
 from core.utils import check_fraction
+from PyQt5.QtCore import Qt
 
 class AddFractionDialog(QDialog):
     """
     一个模态对话框，包含即时输入验证和错误信息显示。
     """
-    def __init__(self, parent=None):
+    def __init__(self, defined_symbols: list[str] ,parent=None):
         super().__init__(parent)
         self.setWindowTitle("添加质量分数")
         self.setMinimumWidth(350)
-        
+
+        self.defined_symbols = defined_symbols
         self.valid_data = None
 
         # --- UI元素 ---
@@ -40,6 +42,40 @@ class AddFractionDialog(QDialog):
         self.symbol_input.textChanged.connect(self.error_label.clear)
         self.fraction_input.textChanged.connect(self.error_label.clear)
 
+        # 获取实际的OK按钮
+        self.real_ok_button = button_box.button(QDialogButtonBox.Ok)
+        
+        # 连接文本变化信号
+        self.symbol_input.textChanged.connect(self.error_label.clear)
+        self.fraction_input.textChanged.connect(self.error_label.clear)
+        
+        # 设置Enter键行为
+        self._setup_enter_key_behavior()
+
+    def _setup_enter_key_behavior(self):
+        """配置Enter键的焦点转移和确认行为"""
+        # 设置符号输入框的回车行为 - 跳转到分数输入框
+        self.symbol_input.returnPressed.connect(
+            lambda: self.fraction_input.setFocus()
+        )
+        
+        # 设置分数输入框的回车行为 - 执行确认操作
+        self.fraction_input.returnPressed.connect(
+            self._trigger_accept
+        )
+        
+        # 设置两个输入框都接受Enter键
+        self.symbol_input.setFocusPolicy(Qt.StrongFocus)
+        self.fraction_input.setFocusPolicy(Qt.StrongFocus)
+
+    def _trigger_accept(self):
+        """触发确认操作（模拟点击OK按钮）"""
+        if self.real_ok_button.isEnabled():
+            self.real_ok_button.click()
+        else:
+            # 如果OK按钮不可用，保持焦点在当前输入框
+            self.fraction_input.setFocus()
+
     def _validate_and_accept(self):
         """
         验证输入。如果有效，则接受对话框；否则，显示错误信息。
@@ -51,7 +87,7 @@ class AddFractionDialog(QDialog):
             fraction_str = self.fraction_input.text().strip()
             
             # 调用核心验证函数
-            valid_symbol, valid_fraction = check_fraction(symbol, fraction_str)
+            valid_symbol, valid_fraction = check_fraction(symbol, fraction_str, self.defined_symbols)
             
             self.valid_data = (valid_symbol, valid_fraction)
             self.accept()
@@ -64,9 +100,9 @@ class AddFractionDialog(QDialog):
         return self.valid_data
 
     @staticmethod
-    def get_new_fraction(parent=None) -> tuple | None:
+    def get_new_fraction(defined_symbols: list[str],parent=None, ) -> tuple | None:
         """静态方法：创建、显示对话框，并返回结果。"""
-        dialog = AddFractionDialog(parent)
+        dialog = AddFractionDialog(defined_symbols, parent)
         if dialog.exec_() == QDialog.Accepted:
             return dialog.get_data()
         return None
