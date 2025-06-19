@@ -7,11 +7,6 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QFormLayout, QLineEdit)
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 
-# # --- 模拟 Core 模块 ---
-# class MockChemicalCalculator:
-#     def solve_for_single_unknown(self, *args, **kwargs): return [({'OAc': 2, '?': 1}, 55.845, 'Fe')]
-#     def solve_by_brute_force(self, *args, **kwargs): return [{'C': 1, 'H': 2, 'O': 1}]
-
 from gui.dialogs.add_component_dialog import AddComponentDialog
 from gui.dialogs.add_fraction_dialog import AddFractionDialog
 from gui.widgets.results_viewer import ResultsViewerWidget
@@ -162,6 +157,8 @@ class MainWindow(QMainWindow):
             unknown_fraction_provided = '?' in mass_fractions_data
 
             # 3. 调用后端（此处为模拟调用）
+            print(components_data)
+            print(mass_fractions_data)
             if has_unknown_comp and unknown_fraction_provided:
                 results = self.calculator.solve_for_single_unknown(
                     # 此处应有数据转换逻辑，将UI数据转为core模块的格式

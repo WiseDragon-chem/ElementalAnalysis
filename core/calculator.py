@@ -18,7 +18,6 @@ class ChemicalCalculator:
                                  known_components_data: list[dict],
                                  unknown_mass_fraction: float,
                                  n_max: int,
-                                 
                                  tolerance: float) -> list[data_modules.SolutionUnknown]:
         """
         实现“单一未知元素”模式的计算。

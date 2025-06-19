@@ -51,3 +51,27 @@ def find_matching_element(mass: float, tolerance: float,
             min_diff = diff
     
     return best_match
+
+def check_component(symbol : str, formula : str):
+    if symbol == '':
+        raise ValueError('请输入元素符号')
+    if symbol.strip() in data_modules.ATOMIC_MASSES.keys():
+        if formula.strip() == '' or  formula.strip() == symbol.strip():
+            return (symbol,symbol)
+        else:
+            raise ValueError(f'符号{symbol}已在元素周期表中，不得覆写其化学组成')
+    ans,_ = parse_formula(formula)
+    if ans <= 1e-5:
+        raise ValueError(f'符号{symbol}不在元素周期表中，需要给出化学组成')
+    return (symbol,formula)
+
+def check_fraction(symbol :str, fraction_str: str):
+    if symbol == '':
+        raise ValueError('请输入元素符号')
+    try: 
+        fraction_ = float(fraction_str)
+    except ValueError:
+        raise ValueError('质量分数应为(0,100)范围内的数')
+    if fraction_ <= 0 or fraction_>=100:
+        raise ValueError('质量分数应为(0,100)范围内的数')
+    return symbol, fraction_
