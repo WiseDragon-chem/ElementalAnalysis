@@ -57,10 +57,10 @@ def find_matching_element(mass: float, tolerance: float,
 
 def check_component(symbol : str, formula : str, existing_symbols : list[str] ):
     """检验用户输入的化学式是否合法"""
-    if symbol == '?' or symbol == '？':
-        return ('?',"?")
     if symbol in existing_symbols:
         raise ValueError(f'组分{symbol}已经被添加')
+    if symbol == '?' or symbol == '？':
+        return ('?',"?")
     if symbol == '':
         raise ValueError('请输入元素符号')
     if symbol.strip() in data_modules.ATOMIC_MASSES.keys():
