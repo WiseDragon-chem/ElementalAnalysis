@@ -17,6 +17,7 @@ class ChemicalCalculator:
     def solve_for_single_unknown(self, 
                                  known_components_data: list[dict],
                                  unknown_mass_fraction: float,
+                                 mass_fractions: dict[str, float],
                                  n_max: int,
                                  tolerance: float,
                                  unknown_filter: str) -> list[data_modules.SolutionUnknown]:
@@ -42,7 +43,7 @@ class ChemicalCalculator:
         self.element_type = unknown_filter
 
         for n_unknown in range(1, n_max + 1):
-            self._find_combinations_recursive(0, {'?': n_unknown}, 0.0)
+            self._find_combinations_recursive(0, {'?': n_unknown}, 0.0, mass_fractions)
         
         # 按元素种类数量和总原子数排序
         self.solutions.sort(key=lambda x: (len(x[0]), sum(x[0].values())))
@@ -87,12 +88,11 @@ class ChemicalCalculator:
 
             is_match = True
             for element, target_fraction in mass_fractions.items():
-                if element in data_modules.ATOMIC_MASSES:
-                    elem_mass = element_counts.get(element, 0) * data_modules.ATOMIC_MASSES[element]
-                    actual_fraction = (elem_mass / total_mass) * 100.0
-                    if abs(actual_fraction - target_fraction) > tolerance:
-                        is_match = False
-                        break
+                elem_mass = element_counts.get(element, 0) * data_modules.ATOMIC_MASSES[element]
+                actual_fraction = (elem_mass / total_mass) * 100.0
+                if abs(actual_fraction - target_fraction) > tolerance:
+                    is_match = False
+                    break
         
             if is_match:
                 formula = {symbols[i]: n for i, n in enumerate(counts)}
@@ -118,10 +118,12 @@ class ChemicalCalculator:
         return ret
 
 
-    def _find_combinations_recursive(self, comp_index: int, formula: 
-                                     data_modules.Formula, known_mass_sum: float,):
+    def _find_combinations_recursive(self, comp_index: int, 
+                                     formula: data_modules.Formula, 
+                                     known_mass_sum: float, 
+                                     mass_fractions : dict[str, float],):
         """
-        (私有) 'solve_for_single_unknown' 方法中使用的递归辅助函数。
+        'solve_for_single_unknown' 方法中使用的递归辅助函数。
         """
         if comp_index == len(self.known_components):
             if known_mass_sum > 1e-6:
@@ -132,11 +134,13 @@ class ChemicalCalculator:
                 matched_element = utils.find_matching_element(unknown_atomic_mass, 
                                                               self.tolerance, self.element_type)
                 if matched_element:
-                    self.solutions.append((formula.copy(), unknown_atomic_mass, matched_element))
+                    if utils._vertify_fraction_calculate(
+                        formula, mass_fractions, self.tolerance,matched_element):
+                        self.solutions.append((formula.copy(), unknown_atomic_mass, matched_element))
             return
 
         comp = self.known_components[comp_index]
         for n in range(1, self.n_max + 1):
             formula[comp['symbol']] = n
-            self._find_combinations_recursive(comp_index + 1, formula, known_mass_sum + n * comp['mass'])
+            self._find_combinations_recursive(comp_index + 1, formula, known_mass_sum + n * comp['mass'], mass_fractions)
         del formula[comp['symbol']]

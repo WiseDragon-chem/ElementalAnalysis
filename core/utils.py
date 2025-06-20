@@ -1,5 +1,5 @@
 from typing import Dict, List, Tuple, TypedDict, Optional, Set
-import re
+import re,copy
 from core import data_modules
 
 def parse_formula(formula_str: str) -> tuple[float, data_modules.Formula]:
@@ -57,6 +57,9 @@ def find_matching_element(mass: float, tolerance: float,
 
 def check_component(symbol : str, formula : str, existing_symbols : list[str] ):
     """检验用户输入的化学式是否合法"""
+    if symbol == '？':  
+        symbol = '?'
+    # print('IN CHECK',existing_symbols,symbol)
     if symbol in existing_symbols:
         raise ValueError(f'组分{symbol}已经被添加')
     if symbol == '?' or symbol == '？':
@@ -93,3 +96,32 @@ def check_fraction(symbol :str, fraction_str: str, defined_symbols: list[str]):
         raise ValueError('请输入元素符号')
 
     return symbol, fraction_
+
+def _vertify_fraction_calculate(
+        test_formula : data_modules.Formula,
+        mass_fractions: dict[str, float],
+        tolerance: float,
+        unknow_element: Optional[str] = None) -> bool:
+    """
+    该函数将在calculator中调用,用于检验化学式是否符合所有质量分数信息。
+    输入：test_formula:需要检测的化学式;
+    mass_fraction: 保存质量分数的列表;
+    tolerance: 容差;
+    unknow_element: (可选参数：未知元素)
+    """
+    total_mass = 0.0
+    _test_formula = copy.copy(test_formula)
+    _mass_fractions = copy.copy(mass_fractions)   #防止后续修改字典影响了别人
+    if unknow_element:
+        _mass_fractions[unknow_element] = mass_fractions['?']
+        _test_formula[unknow_element] = test_formula['?']
+        del _test_formula['?'], _mass_fractions['?']
+    # print('IN VERTIFY',_test_formula, _mass_fractions)
+    for element, number in _test_formula.items():
+        total_mass += data_modules.ATOMIC_MASSES[element] * number
+    for element, target_fraction in _mass_fractions.items():
+        elem_mass = _test_formula[element] * data_modules.ATOMIC_MASSES[element]
+        actual_fraction = (elem_mass / total_mass) * 100.0
+        if abs(actual_fraction - target_fraction) > tolerance:
+            return False
+    return True

@@ -279,6 +279,7 @@ class MainWindow(QMainWindow):
                 results = self.calculator.solve_for_single_unknown(
                     known_components_data=components,
                     unknown_mass_fraction=fractions['?'],
+                    mass_fractions=fractions,
                     n_max=params['n_max'],
                     tolerance=params['mass_tolerance'],
                     unknown_filter=params['unknown_filter']
@@ -296,5 +297,6 @@ class MainWindow(QMainWindow):
                 self.results_viewer.display_results(results, 'general')
 
         except Exception as e:
+            traceback.print_exc()
             QMessageBox.critical(self, "计算错误", str(e))
             self.results_viewer.show_error(str(e))
