@@ -5,49 +5,105 @@ from itertools import product
 class ChemicalCalculator:
     """封装化学式推断算法的计算器类。"""
 
-    def __init__(self):
-        """保存迭代过程中的中间变量"""
-        self.know_components : list[data_modules.Component] = []
-        self.mass_ratio_factor : float = 0
-        self.solutions : List[data_modules.SolutionUnknown] = []
-        self.n_max : int = 0
-        self.tolerance : float = 0.0
-        self.element_type = None
-
-    def solve_for_single_unknown(self, 
+    def solve_for_single_unknown(self,
                                  known_components_data: list[dict],
-                                 unknown_mass_fraction: float,
-                                 mass_fractions: dict[str, float],
+                                 mass_fractions: dict[str, float], 
                                  n_max: int,
                                  tolerance: float,
-                                 unknown_filter: str) -> list[data_modules.SolutionUnknown]:
+                                 unknown_filter: str) -> list[data_modules.SolutionUnknown]:  
         """
-        实现“单一未知元素”模式的计算。
-        这是该模式下对外的唯一接口。
-
-        内部逻辑:
-        1. 调用一个私有方法 (如 _prepare_components) 将输入的原始数据
-           (known_components_data) 转换为内部标准的 List[Component] 格式。
-        2. 执行之前设计的代数求解与递归搜索算法。
-        3. 在每次计算出未知元素的原子质量后，调用 utils.find_matching_element 进行检验。
-        4. 收集所有通过检验的、化学合理的解。
-        5. 返回一个包含多个SolutionUnknown字典的列表。
+        实现“单一未知元素”模式的计算（新版）。
+        利用已知元素的质量分数来反推未知元素的原子质量。
         """
-        self.__init__()
-        self.known_components = self._prepare_components(known_components_data)   # 数据预处理
-        self.mass_ratio_factor = unknown_mass_fraction / (100 - unknown_mass_fraction)
-        self.solutions = []
-        self.n_max = n_max
-        self.tolerance = tolerance
-        # print('IN SOLVE',self.know_components, self.mass_ratio_factor)
-        self.element_type = unknown_filter
+        # 1. 移除 self.__init__()，避免在每次调用时重置整个对象
+        # 2. 将状态作为局部变量管理，使方法可重入
+        known_components = self._prepare_components(known_components_data)
+        solutions = []
 
+        if not mass_fractions:
+             raise ValueError("至少提供一个其他元素的质量分数。")
+
+        # 3. 循环和递归调用
         for n_unknown in range(1, n_max + 1):
-            self._find_combinations_recursive(0, {'?': n_unknown}, 0.0, mass_fractions)
+            # 将所有需要的参数传递给递归函数
+            self._find_combinations_recursive(
+                # --- 递归函数的参数 ---
+                comp_index=0,
+                formula={'?': n_unknown},
+                known_mass_sum=0.0,
+                # --- 不变的上下文参数 ---
+                known_components=known_components,
+                mass_fractions=mass_fractions,
+                n_max=n_max,
+                tolerance=tolerance,
+                element_type=unknown_filter,
+                solutions_list=solutions # 将解决方案列表作为引用传递
+            )
         
-        # 按元素种类数量和总原子数排序
-        self.solutions.sort(key=lambda x: (len(x[0]), sum(x[0].values())))
-        return self.solutions
+        # 4. 排序和返回
+        solutions.sort(key=lambda x: (len(x[0]), sum(x[0].values())))
+        return solutions
+    
+    def _find_combinations_recursive(self, comp_index: int,
+                                     formula: data_modules.Formula, 
+                                     known_mass_sum: float,
+                                     known_components: list,
+                                     mass_fractions : dict[str, float],
+                                     n_max: int,
+                                     tolerance: float,
+                                     element_type: str,
+                                     solutions_list: list):
+        """递归辅助函数，实现了基于已知元素质量分数的求解和验证逻辑。"""
+
+        # print('IN RECURSIVE',formula, solutions_list)
+        if comp_index == len(known_components):        # 当所有已知组分的数量都已确定 
+            if known_mass_sum > 1e-6:
+                
+                base_element = list(mass_fractions.keys())[0]  # a. 选择一个基准元素来计算 A_?
+                w_base = mass_fractions[base_element] / 100.0 # 转换为小数
+                
+                m_base_calculated = self._calculate_elemental_mass_in_formula(formula, known_components, base_element) # b. 计算分子中基准元素的总质量
+
+                n_unknown = formula['?']   # c. 使用新公式求解 A_?
+                if w_base < 1e-9 or n_unknown == 0: return  # 防止除零错误
+                denominator = w_base * n_unknown
+                if abs(denominator) < 1e-9: return
+                unknown_atomic_mass = (m_base_calculated - w_base * known_mass_sum) / denominator
+
+                if not (1.0 <= unknown_atomic_mass <= 300.0):   # d. 初步合理性检验
+                    return
+                
+                total_mass_hypothetical = known_mass_sum + n_unknown * unknown_atomic_mass    # e. 验证：用算出的 A_? 检验所有给定的质量分数是否吻合
+                if total_mass_hypothetical < 1e-6: return
+
+                for element, target_fraction in mass_fractions.items():
+                    m_element_calc = self._calculate_elemental_mass_in_formula(formula, known_components, element)
+                    actual_fraction = (m_element_calc / total_mass_hypothetical) * 100.0
+                    
+                    if abs(actual_fraction - target_fraction) > tolerance:
+                        return  # 不吻合，此解无效
+
+                matched_element = utils.find_matching_element(    # f. 最终化学合理性检验：匹配真实元素
+                    unknown_atomic_mass, tolerance, element_type
+                )
+                if matched_element in mass_fractions.keys():
+                    return
+                if matched_element:
+                    solutions_list.append((formula.copy(), unknown_atomic_mass, matched_element))
+            return
+
+        comp = known_components[comp_index]   # f. 最终化学合理性检验：匹配真实元素
+        # 允许组分数量为0，以处理并非所有组分都存在的情况
+        for n in range(0, n_max + 1):
+            new_formula = formula.copy()
+            if n > 0:
+                new_formula[comp['symbol']] = n
+            self._find_combinations_recursive(
+                comp_index + 1,
+                new_formula,
+                known_mass_sum + n * comp['mass'],
+                known_components, mass_fractions, n_max, tolerance, element_type, solutions_list
+            )
 
 
     def solve_by_brute_force(self,
@@ -67,7 +123,9 @@ class ChemicalCalculator:
         5. 收集所有完全匹配的解。
         6. 返回一个包含多个Formula字典的列表。
         """
+        # WARNING ========================== ERROR OCCURED WHEN MASS FRACTION HAS NO ?
         components = self._prepare_components(components_data)
+        # print(components, mass_fractions)
         comp_map = {c['symbol']: c for c in components}
         symbols = list(comp_map.keys())
         p = len(symbols)
@@ -90,6 +148,7 @@ class ChemicalCalculator:
             for element, target_fraction in mass_fractions.items():
                 elem_mass = element_counts.get(element, 0) * data_modules.ATOMIC_MASSES[element]
                 actual_fraction = (elem_mass / total_mass) * 100.0
+                # print(actual_fraction, target_fraction)
                 if abs(actual_fraction - target_fraction) > tolerance:
                     is_match = False
                     break
@@ -117,30 +176,24 @@ class ChemicalCalculator:
             ret.append(data_modules.Component(symbol=item['symbol'],mass= mass_, composition=formula_))
         return ret
 
-
-    def _find_combinations_recursive(self, comp_index: int, 
-                                     formula: data_modules.Formula, 
-                                     known_mass_sum: float, 
-                                     mass_fractions : dict[str, float],):
+    def _calculate_elemental_mass_in_formula(self, formula: dict, known_components: list, target_element: str) -> float:
         """
-        'solve_for_single_unknown' 方法中使用的递归辅助函数。
+        (新增的私有辅助函数)
+        计算一个假设的化学式中，某个指定元素的总质量。
         """
-        if comp_index == len(self.known_components):
-            if known_mass_sum > 1e-6:
-                n_unknown = formula['?']
-                unknown_atomic_mass = self.mass_ratio_factor * (known_mass_sum / n_unknown)
-                
-                # 化学合理性检验，使用指定的元素类型
-                matched_element = utils.find_matching_element(unknown_atomic_mass, 
-                                                              self.tolerance, self.element_type)
-                if matched_element:
-                    if utils._vertify_fraction_calculate(
-                        formula, mass_fractions, self.tolerance,matched_element):
-                        self.solutions.append((formula.copy(), unknown_atomic_mass, matched_element))
-            return
+        total_element_mass = 0.0
+        
+        # 将 known_components 转换为字典以便快速查找
+        comp_map = {comp['symbol']: comp for comp in known_components}
 
-        comp = self.known_components[comp_index]
-        for n in range(1, self.n_max + 1):
-            formula[comp['symbol']] = n
-            self._find_combinations_recursive(comp_index + 1, formula, known_mass_sum + n * comp['mass'], mass_fractions)
-        del formula[comp['symbol']]
+        for symbol, count in formula.items():
+            if symbol == '?': continue
+            
+            component = comp_map[symbol]
+            # 获取该组分的元素构成，并查找目标元素的数量
+            num_atoms_in_comp = component['composition'].get(target_element, 0)
+            
+            if num_atoms_in_comp > 0:
+                total_element_mass += count * num_atoms_in_comp * data_modules.ATOMIC_MASSES[target_element]
+        
+        return total_element_mass

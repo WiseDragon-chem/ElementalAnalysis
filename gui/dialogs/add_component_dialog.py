@@ -7,18 +7,19 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 from PyQt5.QtCore import Qt
 
 from core.utils import check_component
+from data.data_manager import DataManager
 
 class AddComponentDialog(QDialog):
     """
     一个模态对话框，包含即时输入验证和错误信息显示。
     """
-    def __init__(self, existing_symbols: list[str],parent=None):
+    def __init__(self, data_manager : DataManager,parent=None):
         super().__init__(parent)
         self.setWindowTitle("添加化学组分")
         self.setMinimumWidth(350)
 
-        self.existing_symbols = existing_symbols
-        self.valid_data = None
+        self.data_manager = data_manager
+        # self.valid_data = None
         
         self.symbol_input = QLineEdit()
         self.formula_input = QLineEdit()
@@ -55,18 +56,30 @@ class AddComponentDialog(QDialog):
         # 设置Enter键行为
         self._setup_enter_key_behavior()
 
+    def _validate_and_accept(self):
+        self.error_label.clear()
+        try:
+            # print('IN VALIDATE')
+            symbol = self.symbol_input.text().strip()
+            formula = self.formula_input.text().strip()
+            
+            # 直接调用DataManager的方法，所有验证逻辑都在那里
+            self.data_manager.add_component(symbol, formula)
+            
+            # 验证通过，接受对话框
+            self.accept()
+        except ValueError as e:
+            self.error_label.setText(str(e))
+
     def _setup_enter_key_behavior(self):
         """配置Enter键的焦点转移和确认行为"""
-        # 设置符号输入框的回车行为 - 跳转到分数输入框
         self.symbol_input.returnPressed.connect(
             lambda: self.formula_input.setFocus()
         )
-        
         # 设置分数输入框的回车行为 - 执行确认操作
         self.formula_input.returnPressed.connect(
             self._trigger_accept
         )
-        
         # 设置两个输入框都接受Enter键
         self.symbol_input.setFocusPolicy(Qt.StrongFocus)
         self.formula_input.setFocusPolicy(Qt.StrongFocus)
@@ -79,35 +92,33 @@ class AddComponentDialog(QDialog):
             # 如果OK按钮不可用，保持焦点在当前输入框
             self.formula_input.setFocus()
 
-    def _validate_and_accept(self):
-        """
-        验证输入。如果有效，则接受对话框；否则，显示错误信息。
-        """
-        # 清除旧的错误信息
-        self.error_label.clear()
+    # def _validate_and_accept(self):
+    #     """
+    #     验证输入。如果有效，则接受对话框；否则，显示错误信息。
+    #     """
+    #     # 清除旧的错误信息
+    #     self.error_label.clear()
         
-        try:
-            symbol = self.symbol_input.text().strip()
-            formula = self.formula_input.text().strip()
+    #     try:
+    #         symbol = self.symbol_input.text().strip()
+    #         formula = self.formula_input.text().strip()
             
-            # 调用核心验证函数
-            # print(symbol,formula)
-            valid_symbol, valid_formula = check_component(symbol, formula, self.existing_symbols )
+    #         # 调用核心验证函数
+    #         # print(symbol,formula)
+    #         valid_symbol, valid_formula = check_component(symbol, formula, self.existing_symbols )
             
-            self.valid_data = {'symbol': valid_symbol, 'formula': valid_formula}
-            self.accept()
+    #         self.valid_data = {'symbol': valid_symbol, 'formula': valid_formula}
+    #         self.accept()
 
-        except ValueError as e:
-            self.error_label.setText(str(e))
+    #     except ValueError as e:
+    #         self.error_label.setText(str(e))
     
-    def get_data(self) -> dict:
-        """返回已验证的数据。"""
-        return self.valid_data
+    # def get_data(self) -> dict:
+    #     """返回已验证的数据。"""
+    #     return self.valid_data
 
     @staticmethod
-    def get_new_component(existing_symbols: list[str], parent=None) -> dict | None:
-        """静态方法：创建、显示对话框，并返回结果。"""
-        dialog = AddComponentDialog(existing_symbols,parent)
-        if dialog.exec_() == QDialog.Accepted:
-            return dialog.get_data()
-        return None
+    def show_dialog(data_manager : DataManager, parent=None) -> bool:
+        """静态方法：创建、显示对话框，并返回是否成功添加。"""
+        dialog = AddComponentDialog(data_manager, parent)
+        return dialog.exec_() == QDialog.Accepted

@@ -59,11 +59,14 @@ def check_component(symbol : str, formula : str, existing_symbols : list[str] ):
     """检验用户输入的化学式是否合法"""
     if symbol == '？':  
         symbol = '?'
-    # print('IN CHECK',existing_symbols,symbol)
+    # print('IN CHECK',existing_symbols,symbol,formula)
     if symbol in existing_symbols:
         raise ValueError(f'组分{symbol}已经被添加')
-    if symbol == '?' or symbol == '？':
-        return ('?',"?")
+    if symbol == '?':
+        if formula == '' or '?' or '？':
+            return ('?',"?")
+        else:
+            raise ValueError('不得覆写?的化学组成')
     if symbol == '':
         raise ValueError('请输入元素符号')
     if symbol.strip() in data_modules.ATOMIC_MASSES.keys():
@@ -77,14 +80,14 @@ def check_component(symbol : str, formula : str, existing_symbols : list[str] ):
     return (symbol,formula)
 
 def check_fraction(symbol :str, fraction_str: str, defined_symbols: list[str]):
-    try: 
-        fraction_ = float(fraction_str)
-    except ValueError:
-        raise ValueError('质量分数应为(0,100)范围内的数')
-    if fraction_ <= 0 or fraction_>=100:
-        raise ValueError('质量分数应为(0,100)范围内的数')
     if symbol == '?' or symbol == '？':
         if '?' in defined_symbols:
+            try:
+                fraction_ = float(fraction_str)
+            except ValueError:
+                raise ValueError('质量分数应为(0,100)范围内的数')
+            if fraction_ <= 0 or fraction_>=100:
+                raise ValueError('质量分数应为(0,100)范围内的数')
             return ('?', fraction_)
         else:
             raise ValueError('没有定义未知元素')
@@ -94,6 +97,13 @@ def check_fraction(symbol :str, fraction_str: str, defined_symbols: list[str]):
         raise ValueError(f'符号{symbol}尚未添加，需要在添加化学组分窗口添加')
     if symbol == '':
         raise ValueError('请输入元素符号')
+    # print('BEFORE CHECK STR')
+    try: 
+        fraction_ = float(fraction_str)
+    except ValueError:
+        raise ValueError('质量分数应为(0,100)范围内的数')
+    if fraction_ <= 0 or fraction_>=100:
+        raise ValueError('质量分数应为(0,100)范围内的数')
 
     return symbol, fraction_
 

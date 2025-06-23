@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QGroupBox, QTableWidget, 
-                             QTableWidgetItem, QHeaderView)
+                             QTableWidgetItem, QHeaderView, QAbstractItemView)
 
 class ResultsViewerWidget(QWidget):
     """展示不同模式下的计算结果。"""
@@ -15,6 +15,7 @@ class ResultsViewerWidget(QWidget):
 
         group_layout = QVBoxLayout(group_box)
         self.table = QTableWidget()
+        self.table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         group_layout.addWidget(self.table)
     
     def clear_results(self):

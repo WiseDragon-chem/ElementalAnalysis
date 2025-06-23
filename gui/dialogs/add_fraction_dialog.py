@@ -4,18 +4,19 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 
 from core.utils import check_fraction
 from PyQt5.QtCore import Qt
+from data.data_manager import DataManager
 
 class AddFractionDialog(QDialog):
     """
     一个模态对话框，包含即时输入验证和错误信息显示。
     """
-    def __init__(self, defined_symbols: list[str] ,parent=None):
+    def __init__(self,data_manager : DataManager ,parent=None):
         super().__init__(parent)
         self.setWindowTitle("添加质量分数")
         self.setMinimumWidth(350)
 
-        self.defined_symbols = defined_symbols
-        self.valid_data = None
+        self.data_manager = data_manager
+        # self.valid_data = None
 
         # --- UI元素 ---
         self.symbol_input = QLineEdit()
@@ -77,32 +78,44 @@ class AddFractionDialog(QDialog):
             self.fraction_input.setFocus()
 
     def _validate_and_accept(self):
-        """
-        验证输入。如果有效，则接受对话框；否则，显示错误信息。
-        """
         self.error_label.clear()
-        
         try:
             symbol = self.symbol_input.text().strip()
-            fraction_str = self.fraction_input.text().strip()
+            fracion = self.fraction_input.text().strip()
             
-            # 调用核心验证函数
-            valid_symbol, valid_fraction = check_fraction(symbol, fraction_str, self.defined_symbols)
+            # 直接调用DataManager的方法，所有验证逻辑都在那里
+            self.data_manager.add_fraction(symbol, fracion)
             
-            self.valid_data = (valid_symbol, valid_fraction)
+            # 验证通过，接受对话框
             self.accept()
-            
         except ValueError as e:
             self.error_label.setText(str(e))
+
+    # def _validate_and_accept(self):
+    #     """
+    #     验证输入。如果有效，则接受对话框；否则，显示错误信息。
+    #     """
+    #     self.error_label.clear()
+        
+    #     try:
+    #         symbol = self.symbol_input.text().strip()
+    #         fraction_str = self.fraction_input.text().strip()
             
-    def get_data(self) -> tuple | None:
-        """返回已验证的数据。"""
-        return self.valid_data
+    #         # 调用核心验证函数
+    #         valid_symbol, valid_fraction = check_fraction(symbol, fraction_str, self.defined_symbols)
+            
+    #         self.valid_data = (valid_symbol, valid_fraction)
+    #         self.accept()
+            
+    #     except ValueError as e:
+    #         self.error_label.setText(str(e))
+            
+    # def get_data(self) -> tuple | None:
+    #     """返回已验证的数据。"""
+    #     return self.valid_data
 
     @staticmethod
-    def get_new_fraction(defined_symbols: list[str],parent=None, ) -> tuple | None:
-        """静态方法：创建、显示对话框，并返回结果。"""
-        dialog = AddFractionDialog(defined_symbols, parent)
-        if dialog.exec_() == QDialog.Accepted:
-            return dialog.get_data()
-        return None
+    def show_dialog(data_manager : DataManager, parent=None) -> bool:
+        """静态方法：创建、显示对话框，并返回是否成功添加。"""
+        dialog = AddFractionDialog(data_manager, parent)
+        return dialog.exec_() == QDialog.Accepted
