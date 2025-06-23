@@ -91,29 +91,6 @@ class AddFractionDialog(QDialog):
         except ValueError as e:
             self.error_label.setText(str(e))
 
-    # def _validate_and_accept(self):
-    #     """
-    #     验证输入。如果有效，则接受对话框；否则，显示错误信息。
-    #     """
-    #     self.error_label.clear()
-        
-    #     try:
-    #         symbol = self.symbol_input.text().strip()
-    #         fraction_str = self.fraction_input.text().strip()
-            
-    #         # 调用核心验证函数
-    #         valid_symbol, valid_fraction = check_fraction(symbol, fraction_str, self.defined_symbols)
-            
-    #         self.valid_data = (valid_symbol, valid_fraction)
-    #         self.accept()
-            
-    #     except ValueError as e:
-    #         self.error_label.setText(str(e))
-            
-    # def get_data(self) -> tuple | None:
-    #     """返回已验证的数据。"""
-    #     return self.valid_data
-
     @staticmethod
     def show_dialog(data_manager : DataManager, parent=None) -> bool:
         """静态方法：创建、显示对话框，并返回是否成功添加。"""

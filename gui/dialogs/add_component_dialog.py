@@ -92,31 +92,6 @@ class AddComponentDialog(QDialog):
             # 如果OK按钮不可用，保持焦点在当前输入框
             self.formula_input.setFocus()
 
-    # def _validate_and_accept(self):
-    #     """
-    #     验证输入。如果有效，则接受对话框；否则，显示错误信息。
-    #     """
-    #     # 清除旧的错误信息
-    #     self.error_label.clear()
-        
-    #     try:
-    #         symbol = self.symbol_input.text().strip()
-    #         formula = self.formula_input.text().strip()
-            
-    #         # 调用核心验证函数
-    #         # print(symbol,formula)
-    #         valid_symbol, valid_formula = check_component(symbol, formula, self.existing_symbols )
-            
-    #         self.valid_data = {'symbol': valid_symbol, 'formula': valid_formula}
-    #         self.accept()
-
-    #     except ValueError as e:
-    #         self.error_label.setText(str(e))
-    
-    # def get_data(self) -> dict:
-    #     """返回已验证的数据。"""
-    #     return self.valid_data
-
     @staticmethod
     def show_dialog(data_manager : DataManager, parent=None) -> bool:
         """静态方法：创建、显示对话框，并返回是否成功添加。"""

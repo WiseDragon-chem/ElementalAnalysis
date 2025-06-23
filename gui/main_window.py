@@ -296,21 +296,6 @@ class MainWindow(QMainWindow):
         self.components_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.Stretch)
         self._is_refreshing_tables = False
 
-
-    # def _on_add_component(self):
-    #     """处理添加组分按钮点击事件"""
-    #     existing_symbols = [c['symbol'] for c in self.components_data]
-    #     # 将当前上下文传递给对话框
-    #     new_comp_data = AddComponentDialog.get_new_component(existing_symbols, self)
-        
-    #     if new_comp_data:
-    #         # 1. 更新内部数据状态
-    #         self.components_data.append(new_comp_data)
-    #         # 2. 根据数据状态刷新UI
-    #         self._refresh_components_table()
-    #         # 调节fliter可见性
-    #         self._update_ui_visibility() 
-
     def _on_delete_component_row(self, row: int):
         """当组分表格中的删除按钮被点击时触发。"""
         self.controller.data_manager.delete_component(row)
@@ -328,143 +313,9 @@ class MainWindow(QMainWindow):
             self.controller.data_manager.delete_fraction(symbol_item.text())
             self._refresh_fractions_table()
 
-    # def _on_add_fraction(self):
-    #     """处理添加质量分数按钮点击事件"""
-    #     defined_symbols = [c['symbol'] for c in self.components_data]
-    #     if not defined_symbols:
-    #         QMessageBox.warning(self, "提示", "请先至少定义一个化学组分。")
-    #         return
-            
-    #     new_frac_data = AddFractionDialog.get_new_fraction(defined_symbols, self)
-        
-    #     if new_frac_data:
-    #         symbol, fraction = new_frac_data
-    #         # 1. 更新内部数据状态
-    #         self.fractions_data[symbol] = fraction
-    #         # 2. 根据数据状态刷新UI
-    #         self._refresh_fractions_table()
-
-    # def _on_delete_component_row(self, symbol_to_delete):
-    #     """处理删除组分表格行的请求"""
-    #     # 从 self.components_data 移除
-    #     self.components_data = [comp for comp in self.components_data if comp['symbol'] != symbol_to_delete]
-        
-    #     # 如果对应的符号也存在于质量分数数据中，一并移除
-    #     if symbol_to_delete in self.fractions_data:
-    #         del self.fractions_data[symbol_to_delete]
-    #         self._refresh_fractions_table() # 如果fractions_data改变了，刷新它
-            
-    #     self._refresh_components_table()
-    #     self._update_ui_visibility() # 如果 '?' 被删除，需要更新过滤器可见性
-
-    # def _on_delete_fraction_row(self, symbol_to_delete):
-    #     """处理删除质量分数表格行的请求"""
-    #     if symbol_to_delete in self.fractions_data:
-    #         del self.fractions_data[symbol_to_delete]
-    #         self._refresh_fractions_table()
-
-    # def _refresh_components_table(self):
-    #     self.components_table.setRowCount(0) 
-    #     for comp in self.components_data:
-    #         row = self.components_table.rowCount()
-    #         self.components_table.insertRow(row)
-            
-    #         # 删除按钮
-    #         delete_button = QPushButton()
-    #         delete_button.setIcon(self.style().standardIcon(QStyle.SP_TrashIcon))
-    #         # 使用 lambda 来捕获当前的 comp['symbol']
-    #         # 需要注意 lambda 捕获变量的问题，确保 s=comp['symbol']
-    #         delete_button.clicked.connect(lambda checked, s=comp['symbol']: self._on_delete_component_row(s))
-    #         self.components_table.setCellWidget(row, 0, delete_button)
-            
-    #         self.components_table.setItem(row, 1, QTableWidgetItem(comp['symbol']))
-    #         self.components_table.setItem(row, 2, QTableWidgetItem(comp['formula']))
-            
-    # def _refresh_fractions_table(self):
-    #     self.fractions_table.setRowCount(0) 
-    #     for symbol, fraction in sorted(self.fractions_data.items()):
-    #         row = self.fractions_table.rowCount()
-    #         self.fractions_table.insertRow(row)
-
-    #         # 删除按钮
-    #         delete_button = QPushButton()
-    #         delete_button.setIcon(self.style().standardIcon(QStyle.SP_TrashIcon))
-    #         # 使用 lambda 来捕获当前的 symbol
-    #         delete_button.clicked.connect(lambda checked, s=symbol: self._on_delete_fraction_row(s))
-    #         self.fractions_table.setCellWidget(row, 0, delete_button)
-
-    #         self.fractions_table.setItem(row, 1, QTableWidgetItem(symbol))
-    #         self.fractions_table.setItem(row, 2, QTableWidgetItem(str(fraction)))
-
-    # def _update_ui_visibility(self):
-    #     """根据'?'是否存在，来显示或隐藏过滤器。"""
-    #     has_unknown = '?' in [c['symbol'] for c in self.components_data]
-    #     self.filter_container.setVisible(has_unknown)
-
     def _update_ui_visibility(self):
         has_unknown = '?' in self.controller.data_manager.get_component_symbols()
         self.filter_container.setVisible(has_unknown)
         
     def _show_error_message(self, message: str):
         QMessageBox.warning(self, "操作提示", message)
-
-    # def _gather_and_prepare_data(self):
-    #     """
-    #     新方法：从self属性收集并准备所有数据，供计算器使用。
-    #     这实现了数据收集与API调用的分离。
-    #     """
-    #     if not self.components_data:
-    #         raise ValueError("请至少定义一个化学组分。")
-        
-    #     # 从配置输入框收集参数
-    #     params = {
-    #         "n_max": int(self.n_max_input.text()),
-    #         "mass_tolerance": float(self.mass_tol_input.text()),
-    #         "fraction_tolerance": float(self.frac_tol_input.text())
-    #     }
-        
-    #     # 收集过滤器状态
-    #     if self.metal_radio.isChecked():
-    #         params["unknown_filter"] = 'metal'
-    #     elif self.nonmetal_radio.isChecked():
-    #         params["unknown_filter"] = 'nonmetal'
-    #     else:
-    #         params["unknown_filter"] = 'unlimited'
-
-    #     return self.components_data, self.fractions_data, params
-
-    # def _run_calculation(self):
-    #     """现在只负责协调，逻辑更清晰。"""
-    #     try:
-    #         components, fractions, params = self._gather_and_prepare_data()
-
-    #         # 模式选择
-    #         has_unknown = '?' in [c['symbol'] for c in components]
-    #         unknown_frac_given = '?' in fractions
-            
-    #         if has_unknown and unknown_frac_given:
-    #             # print('IN WINDOW',components, fractions)
-    #             results = self.calculator.solve_for_single_unknown(
-    #                 known_components_data=components,
-    #                 unknown_mass_fraction=fractions['?'],
-    #                 mass_fractions=fractions,
-    #                 n_max=params['n_max'],
-    #                 tolerance=params['mass_tolerance'],
-    #                 unknown_filter=params['unknown_filter']
-    #             )
-    #             self.results_viewer.display_results(results, 'unknown_element')
-    #         else:
-    #             if not fractions:
-    #                 raise ValueError("通用模式下，请至少提供一个质量分数。")
-    #             results = self.calculator.solve_by_brute_force(
-    #                 components_data=components,
-    #                 mass_fractions=fractions,
-    #                 n_max=params['n_max'],
-    #                 tolerance=params['fraction_tolerance']
-    #             )
-    #             self.results_viewer.display_results(results, 'general')
-
-    #     except Exception as e:
-    #         traceback.print_exc()
-    #         QMessageBox.critical(self, "计算错误", str(e))
-    #         self.results_viewer.show_error(str(e))
